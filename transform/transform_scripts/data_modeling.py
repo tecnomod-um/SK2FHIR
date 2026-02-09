@@ -84,6 +84,8 @@ def parse_datetime(raw: str, *, tz: str = "Europe/Bratislava") -> datetime:
 def get_uuid() -> str:
     return f"urn:uuid:{uuid.uuid4()}"
 
+def get_patient_id() -> str:
+    return f"{uuid.uuid4()}"
 
 def get_stroke_etiology(raw: dict):
     # No error if none applies; choose first True
@@ -114,7 +116,7 @@ def get_before_onset_medications(raw: dict):
         "before_onset_asa": Medications.ASA,
         "before_onset_clopidogrel" : Medications.CLOPIDOGREL,
         "before_onset_contraception": Medications.CONTRACEPTION,
-        "before_onset_other_anticoagulant": Medications.ANTICOAGULANT,
+        "before_onset_other_anticoagulant": Medications.OTHER_ANTICOAGULANT,
         "before_onset_statin": Medications.STATIN,
         "before_onset_warfarin": Medications.WARFARIN
         
@@ -201,9 +203,9 @@ def get_risk_factors(raw: dict):
 
     return risk_factor_active, risk_factor_inactive, risk_factor_unknown, risk_factor_remission
 
-def build_Patient(raw: dict) -> Patient:
+def build_Patient(patient_id: str, raw: dict) -> Patient:
     patient = Patient()
-    patient.id = str(raw["id"])
+    patient.id = str(patient_id)
     extension_list = []
 
     # Gender (optional)
@@ -216,7 +218,7 @@ def build_Patient(raw: dict) -> Patient:
                                    display=str(getattr(sex, "display", "")))
             code_gender = CodeableConcept(coding=[coding_gender])
             extension_list.append(Extension(
-                url="http://testSK.org/StructureDefinition/gender-snomed-ext",
+                url="http://tecnomod-um.org/StructureDefinition/gender-snomed-ext",
                 valueCodeableConcept=code_gender
             ))
         except Exception as e:
@@ -248,7 +250,7 @@ def build_stroke_diagnosis_condition_profile(raw: dict, patient_ref: str, encoun
     )])
 
     # Profile + optional extensions
-    condition.meta = {"profile": ["http://testSK.org/StructureDefinition/stroke-diagnosis-condition-profile"]}
+    condition.meta = {"profile": ["http://tecnomod-um.org/StructureDefinition/stroke-diagnosis-condition-profile"]}
     extension_list = []
 
     etiology = get_stroke_etiology(raw)
@@ -256,22 +258,22 @@ def build_stroke_diagnosis_condition_profile(raw: dict, patient_ref: str, encoun
 
     if etiology is not None:
         extension_list.append(Extension(
-            url="http://testSK.org/StructureDefinition/ischemic-stroke-etiology-ext",
+            url="http://tecnomod-um.org/StructureDefinition/ischemic-stroke-etiology-ext",
             valueCodeableConcept=CodeableConcept(coding=[Coding(system=etiology.system, code=etiology.code, display=etiology.display)])
         ))
     elif bleeding_reason is not None:
         extension_list.append(Extension(
-            url="http://testSK.org/StructureDefinition/hemorrhagic-stroke-bleeding-reason-ext",
+            url="http://tecnomod-um.org/StructureDefinition/hemorrhagic-stroke-bleeding-reason-ext",
             valueCodeableConcept=CodeableConcept(coding=[Coding(system=bleeding_reason.system, code=bleeding_reason.code, display=bleeding_reason.display)])
         ))
 
     
     # onset date/time (optional, but defensive)
     if not safe_isna(raw.get('onset_date')):
-        extension_list.append(Extension(url="http://testSK.org/StructureDefinition/onset-date-ext",
+        extension_list.append(Extension(url="http://tecnomod-um.org/StructureDefinition/onset-date-ext",
                                         valueDate=raw['onset_date'].date().isoformat()))
     if not safe_isna(raw.get('onset_time')):
-        extension_list.append(Extension(url="http://testSK.org/StructureDefinition/onset-time-ext",
+        extension_list.append(Extension(url="http://tecnomod-um.org/StructureDefinition/onset-time-ext",
                                         valueTime=raw['onset_time'].time().isoformat()))
 
     if extension_list:
@@ -299,7 +301,7 @@ def build_risk_factor_condition_profile(raw, patient_ref : str, encounter_ref : 
             
             subject = Reference(reference=patient_ref),
             code = code_rf,
-            meta = {"profile": ["http://testSK.org/StructureDefinition/stroke-risk-factor-condition-profile"]},
+            meta = {"profile": ["http://tecnomod-um.org/StructureDefinition/stroke-risk-factor-condition-profile"]},
             clinicalStatus = code_status,
             encounter = Reference(reference=encounter_ref),
             )
@@ -373,7 +375,7 @@ def build_imaging_procedure(raw: dict, patient_ref : str, encounter_ref : str) -
     post_acute_care_code = CodeableConcept(coding=[post_acute_care_coding])
 
     extension_list = []
-    extension_list.append(Extension(url="http://testSK.org/StructureDefinition/procedure-timing-context-ext", valueCodeableConcept=post_acute_care_code))
+    extension_list.append(Extension(url="http://tecnomod-um.org/StructureDefinition/procedure-timing-context-ext", valueCodeableConcept=post_acute_care_code))
     category_code = CodeableConcept(coding=[category_coding])
     procedure_final.extension = extension_list
     imaging_timestamp = raw.get("imaging_timestamp")
@@ -396,7 +398,7 @@ def build_observation_Af_or_F(raw: dict, patient_ref: str, encounter_ref: str) -
     observation = Observation(code=af_stroke_code, status="final",
                               subject=Reference(reference=patient_ref),
                               encounter=Reference(reference=encounter_ref))
-    observation.meta = {"profile": ["http://testSK.org/StructureDefinition/specific-finding-observation-profile"]}
+    observation.meta = {"profile": ["http://tecnomod-um.org/StructureDefinition/specific-finding-observation-profile"]}
 
     category = CodeableConcept(coding=[Coding(
         code="laboratory", display="Laboratory",
@@ -473,7 +475,7 @@ def build_observation_vital_signs(raw: dict, patient_ref : str, encounter_ref : 
         subject = Reference(reference=patient_ref),
         category = [category_code],
         code = code_vs,
-        meta = {"profile": ["http://testSK.org/StructureDefinition/vital-sign-observation-profile"]},
+        meta = {"profile": ["http://tecnomod-um.org/StructureDefinition/vital-sign-observation-profile"]},
         component = [component_systolic, component_diastolic],
         encounter = Reference(reference=encounter_ref),
     )
@@ -500,7 +502,7 @@ def build_observation_mrs(raw: dict, patient_ref : str, encounter_ref : str, pre
 
     assessment_code = CodeableConcept(coding=[assessment_coding])
 
-    extensions = Extension(url="http://testSK.org/StructureDefinition/observation-timing-context-ext",valueCodeableConcept=assessment_code)
+    extensions = Extension(url="http://tecnomod-um.org/StructureDefinition/observation-timing-context-ext",valueCodeableConcept=assessment_code)
     obs_code = FunctionalScore.MRS
 
     coding_mrs = Coding(
@@ -527,7 +529,7 @@ def build_observation_mrs(raw: dict, patient_ref : str, encounter_ref : str, pre
     return Observation(
             status="final",
             
-            meta = {"profile": ["http://testSK.org/StructureDefinition/functional-score-observation-profile"]},
+            meta = {"profile": ["http://tecnomod-um.org/StructureDefinition/functional-score-observation-profile"]},
             subject=Reference(reference=patient_ref),
             encounter=Reference(reference=encounter_ref),
             code = code_mrs,
@@ -550,7 +552,7 @@ def build_observation_nihss(raw: dict, patient_ref : str, encounter_ref : str, a
             code = assesment_value.code,
             display = assesment_value.display
         )
-    extensions = Extension(url="http://testSK.org/StructureDefinition/observation-timing-context-ext",valueCodeableConcept=CodeableConcept(coding=[assesment_coding]))
+    extensions = Extension(url="http://tecnomod-um.org/StructureDefinition/observation-timing-context-ext",valueCodeableConcept=CodeableConcept(coding=[assesment_coding]))
 
     obs_code = FunctionalScore.NIHSS
     coding_nihss = Coding(
@@ -566,14 +568,19 @@ def build_observation_nihss(raw: dict, patient_ref : str, encounter_ref : str, a
     )
     code_category = CodeableConcept(coding=[coding_category])
 
+    if admission is True and discharge is False:
+        value_nihss = raw.get("nihss_score")
+    elif discharge is True and admission is False:
+        value_nihss = raw.get("discharge_nihss_score")
+    
     return Observation(
         status="final",
         
         subject=Reference(reference=patient_ref),
         encounter=Reference(reference=encounter_ref),
-        meta = {"profile": ["http://testSK.org/StructureDefinition/functional-score-observation-profile"]},
+        meta = {"profile": ["http://tecnomod-um.org/StructureDefinition/functional-score-observation-profile"]},
         code=code_nihss,
-        valueInteger=raw.get("nihss_score"),
+        valueInteger=value_nihss,
         category=[code_category],
         extension=[extensions],
     )
@@ -607,7 +614,7 @@ def build_observation_mtici_score(raw: dict, patient_ref : str, encounter_ref : 
     return Observation(
         status="final",
         subject=Reference(reference=patient_ref),
-        meta={"profile": ["http://testSK.org/StructureDefinition/specific-finding-observation-profile"]},
+        meta={"profile": ["http://tecnomod-um.org/StructureDefinition/specific-finding-observation-profile"]},
         code=code_mtici,
         valueCodeableConcept=code_value_mtici,
         category=[code_category],
@@ -628,7 +635,7 @@ def build_observation_smoking(raw: dict, patient_ref: str, encounter_ref: str) -
     return Observation(
         status="final",
         subject=Reference(reference=patient_ref),
-        meta={"profile": ["http://testSK.org/StructureDefinition/base-stroke-observation"]},
+        meta={"profile": ["http://tecnomod-um.org/StructureDefinition/base-stroke-observation"]},
         code=code_smoker,
         encounter=Reference(reference=encounter_ref),
     )
@@ -649,7 +656,7 @@ def build_stroke_circumstance_observation(patient_ref : str, encounter_ref : str
         status="final",
         
         subject=Reference(reference=patient_ref),
-        meta={"profile":["http://testSK.org/StructureDefinition/stroke-circumstance-observation-profile"]},
+        meta={"profile":["http://tecnomod-um.org/StructureDefinition/stroke-circumstance-observation-profile"]},
         code=code_circumstance,
         encounter=Reference(reference=encounter_ref),
         #focus=[Reference(reference=condition_ref)]
@@ -658,7 +665,7 @@ def build_stroke_circumstance_observation(patient_ref : str, encounter_ref : str
 
 def build_carotid_imaging_procedure(raw: dict, patient_ref : str, encounter_ref:str, done_value) -> Procedure:
 
-    procedure = Procedure(subject=Reference(reference=patient_ref), encounter=Reference(reference=encounter_ref), status="completed", meta={"profile": ["http://testSK.org/StructureDefinition/stroke-carotid-imaging-procedure-profile"]})
+    procedure = Procedure(subject=Reference(reference=patient_ref), encounter=Reference(reference=encounter_ref), status="completed", meta={"profile": ["http://tecnomod-um.org/StructureDefinition/stroke-carotid-imaging-procedure-profile"]})
     carotid_imaging = CarotidImaging.CAROTID
     coding_carotid = Coding(
         code = carotid_imaging.code,
@@ -673,7 +680,7 @@ def build_carotid_imaging_procedure(raw: dict, patient_ref : str, encounter_ref:
         display = post_acute_care.display
     )
     code_post_acute = CodeableConcept(coding=[coding_post_acute])
-    extension_list = [Extension(url="http://testSK.org/StructureDefinition/procedure-timing-context-ext",valueCodeableConcept=code_post_acute)]
+    extension_list = [Extension(url="http://tecnomod-um.org/StructureDefinition/procedure-timing-context-ext",valueCodeableConcept=code_post_acute)]
     
     if done_value:
         status_value = "completed"
@@ -698,7 +705,7 @@ def build_carotid_imaging_procedure(raw: dict, patient_ref : str, encounter_ref:
 def build_swallowing_screening_procedure(raw: dict, patient_ref : str, encounter_ref : str) -> Procedure:
 
     procedure = Procedure(status="completed", subject=Reference(reference=patient_ref), encounter=Reference(reference=encounter_ref))
-    procedure.meta = {"profile": ["http://testSK.org/StructureDefinition/stroke-swallow-procedure-profile"]}
+    procedure.meta = {"profile": ["http://tecnomod-um.org/StructureDefinition/stroke-swallow-procedure-profile"]}
     
     swallowing_screening = SwallowingScreeningDone.by_id(str(raw.get("swallowing_screening_done_id")))
     if swallowing_screening.id is "Yes":
@@ -716,7 +723,7 @@ def build_swallowing_screening_procedure(raw: dict, patient_ref : str, encounter
     else:
         procedure.status = "unknown"
 
-    if procedure.status == "completed":
+    if swallowing_screening.id == SwallowingScreeningDone.YES_METHOD.id:
         swallowing_type = SwallowingScreeningType.by_id(str(raw.get("swallowing_screening_type_id")))
         coding_type = Coding(
                 code = swallowing_type.code,
@@ -735,7 +742,7 @@ def build_swallowing_screening_procedure(raw: dict, patient_ref : str, encounter
             display = swallowing_timing.display
         )
         code_result = CodeableConcept(coding=[coding_result])
-        extension_list.append(Extension(url="http://testSK.org/StructureDefinition/swallowing-screening-timing-category-ext", valueCodeableConcept=code_result))
+        extension_list.append(Extension(url="http://tecnomod-um.org/StructureDefinition/swallowing-screening-timing-category-ext", valueCodeableConcept=code_result))
         
         post_acute_care = PostAcuteCare.by_id(str(raw.get("post_acute_care"))) 
         coding_post_acute = Coding(
@@ -744,7 +751,7 @@ def build_swallowing_screening_procedure(raw: dict, patient_ref : str, encounter
             display = post_acute_care.display
         )
         code_post_acute = CodeableConcept(coding=[coding_post_acute])
-        extension_list.append(Extension(url="http://testSK.org/StructureDefinition/procedure-timing-context-ext",valueCodeableConcept=code_post_acute))
+        extension_list.append(Extension(url="http://tecnomod-um.org/StructureDefinition/procedure-timing-context-ext",valueCodeableConcept=code_post_acute))
         
         if len(extension_list) > 0:
             procedure.extension = extension_list
@@ -757,7 +764,7 @@ def build_swallowing_screening_procedure(raw: dict, patient_ref : str, encounter
 def build_thrombolysis_procedure(raw: dict, patient_ref : str, encounter_ref : str) -> Procedure:
 
     procedure = Procedure(status= "completed", subject=Reference(reference=patient_ref), encounter=Reference(reference=encounter_ref))
-    procedure.meta = {"profile": ["http://testSK.org/StructureDefinition/stroke-mechanical-procedure-profile"]}
+    procedure.meta = {"profile": ["http://tecnomod-um.org/StructureDefinition/stroke-mechanical-procedure-profile"]}
     thrombolysis = PerforationProcedures.THROMBOLYSIS
     coding_thrombolysis = Coding(
         code = thrombolysis.code,
@@ -776,7 +783,7 @@ def build_thrombolysis_procedure(raw: dict, patient_ref : str, encounter_ref : s
             display = post_acute_care.display
         )
         code_post_acute = CodeableConcept(coding=[coding_post_acute])
-        extension_list.append(Extension(url="http://testSK.org/StructureDefinition/procedure-timing-context-ext",valueCodeableConcept=code_post_acute))
+        extension_list.append(Extension(url="http://tecnomod-um.org/StructureDefinition/procedure-timing-context-ext",valueCodeableConcept=code_post_acute))
     
     if len(extension_list) > 0:
         procedure.extension = extension_list
@@ -816,7 +823,7 @@ def build_thrombolysis_procedure(raw: dict, patient_ref : str, encounter_ref : s
     
 def build_thrombectomy_procedure(raw: dict, patient_ref : str, encounter_ref : str, condition_ref : str) -> Procedure:
     procedure = Procedure(status= "not-done", subject=Reference(reference=patient_ref), encounter=Reference(reference=encounter_ref))
-    procedure.meta = {"profile": ["http://testSK.org/StructureDefinition/stroke-mechanical-procedure-profile"]}
+    procedure.meta = {"profile": ["http://tecnomod-um.org/StructureDefinition/stroke-mechanical-procedure-profile"]}
     thrombectomy = PerforationProcedures.THROMBECTOMY
     coding_thrombectomy = Coding(
         code = thrombectomy.code,
@@ -836,7 +843,7 @@ def build_thrombectomy_procedure(raw: dict, patient_ref : str, encounter_ref : s
             display = post_acute_care.display
         )
         code_post_acute = CodeableConcept(coding=[coding_post_acute])
-        extension_list.append(Extension(url="http://testSK.org/StructureDefinition/procedure-timing-context-ext",valueCodeableConcept=code_post_acute))
+        extension_list.append(Extension(url="http://tecnomod-um.org/StructureDefinition/procedure-timing-context-ext",valueCodeableConcept=code_post_acute))
     
     if len(extension_list) > 0:
         procedure.extension = extension_list
@@ -895,7 +902,7 @@ def build_stroke_encounter_profile(raw: dict, patient_ref : str) -> Encounter:
 
     # We build the Encounter resource
     encounter = Encounter(status="completed", subject=Reference(reference=patient_ref))
-    encounter.meta = {"profile" : ["http://testSK.org/StructureDefinition/stroke-encounter-profile"]}
+    encounter.meta = {"profile" : ["http://tecnomod-um.org/StructureDefinition/stroke-encounter-profile"]}
 
     # Obtain discharge destination and arrival mode
     discharge_destination = False
@@ -944,21 +951,21 @@ def build_stroke_encounter_profile(raw: dict, patient_ref : str) -> Encounter:
 
         hospitalized_in = HospitalizedIn.by_id(str(raw.get("hospitalized_in_id")))
         # Create hospitalized_in extension
-        
-        coding_hospitalized_in = Coding(
-        system = hospitalized_in.system,
-        code = hospitalized_in.code,
-        display = hospitalized_in.display)
-        
-        extensionCode = CodeableConcept(coding= [coding_hospitalized_in])
-        
-        # Create extension url 
-        extension_list.append(Extension(url ="http://testSK.org/StructureDefinition/initial-care-intensity-ext",valueCodeableConcept = extensionCode))
+        if hospitalized_in.id == HospitalizedIn.ICU_STROKE_UNIT.id:
+            coding_hospitalized_in = Coding(
+            system = hospitalized_in.system,
+            code = hospitalized_in.code,
+            display = hospitalized_in.display)
+            
+            extensionCode = CodeableConcept(coding= [coding_hospitalized_in])
+            
+            # Create extension url 
+            extension_list.append(Extension(url ="http://tecnomod-um.org/StructureDefinition/initial-care-intensity-ext",valueCodeableConcept = extensionCode))
     
     if raw.get("first_hospital"):
-        extension_list.append(Extension(url = "http://testSK.org/StructureDefinition/first-hospital-ext", valueBoolean = True))
+        extension_list.append(Extension(url = "http://tecnomod-um.org/StructureDefinition/first-hospital-ext", valueBoolean = True))
     else:
-        extension_list.append(Extension(url = "http://testSK.org/StructureDefinition/first-hospital-ext", valueBoolean = False))
+        extension_list.append(Extension(url = "http://tecnomod-um.org/StructureDefinition/first-hospital-ext", valueBoolean = False))
 
     if not pd.isna(raw.get("discharge_facility_department_id")):
         discharge_facility_department = DischargeFacilityDepartment.by_id(str(raw.get("discharge_facility_department_id")))
@@ -971,11 +978,11 @@ def build_stroke_encounter_profile(raw: dict, patient_ref : str) -> Encounter:
         
         code_discharge_department = CodeableConcept(coding= [coding_discharge_department])
         
-        extension_list.append(Extension(url = "http://testSK.org/StructureDefinition/discharge-department-service-ext", valueCodeableConcept = code_discharge_department))
+        extension_list.append(Extension(url = "http://tecnomod-um.org/StructureDefinition/discharge-department-service-ext", valueCodeableConcept = code_discharge_department))
 
     if raw.get("post_acute_care"):
         
-        extension_list.append(Extension(url = "http://testSK.org/StructureDefinition/required-post-acute-care-ext", valueBoolean = True))
+        extension_list.append(Extension(url = "http://tecnomod-um.org/StructureDefinition/required-post-acute-care-ext", valueBoolean = True))
 
     encounter.extension = extension_list
 
@@ -1008,7 +1015,7 @@ def build_timing_specific_observation(raw: dict, patient_ref : str, encounter_re
     final_observation.subject = Reference(reference=patient_ref)
     final_observation.encounter = Reference(reference=encounter_ref)
     final_observation.partOf = [Reference(reference=procedure)]
-    final_observation.meta = {"profile": ["http://testSK.org/StructureDefinition/timing-metric-observation-profile"]}
+    final_observation.meta = {"profile": ["http://tecnomod-um.org/StructureDefinition/timing-metric-observation-profile"]}
     category_coding = Coding(
         system = "http://terminology.hl7.org/CodeSystem/observation-category",
         code = "procedure",
@@ -1086,7 +1093,7 @@ def build_before_onset_medicationStatement_profile(raw: dict, patient_ref : str,
                 medication=code_med_bom,
                 encounter=Reference(reference=encounter_ref),
                 adherence= MedicationStatementAdherence(code=adherence_codeable),
-                meta = {"profile": ["http://testSK.org/StructureDefinition/prior-medication-statement-profile"]}
+                meta = {"profile": ["http://tecnomod-um.org/StructureDefinition/prior-medication-statement-profile"]}
             )
             final_medication_lists.append(medication_statement)
     
@@ -1120,7 +1127,7 @@ def build_before_onset_medicationRequest_profile(raw: dict, patient_ref : str, e
                 subject=Reference(reference=patient_ref),
                 encounter=Reference(reference=encounter_ref),
                 medication=code_med_bom,
-                meta = {"profile": ["http://testSK.org/StructureDefinition/discharge-medication-request-profile"]}
+                meta = {"profile": ["http://tecnomod-um.org/StructureDefinition/discharge-medication-request-profile"]}
             )
             final_medication_lists.append(medication_statement)
     
@@ -1152,7 +1159,7 @@ def build_organization(raw : dict) -> Organization:
 
 
 
-def transform_to_fhir(raw: dict) -> Bundle:
+def transform_to_fhir(file_id:str, raw: dict) -> Bundle:
     # 1. Patient & Encounter
     print(raw)
     patient_ref = get_uuid()
@@ -1161,7 +1168,7 @@ def transform_to_fhir(raw: dict) -> Bundle:
     organization = build_organization(raw)
     entries = [{"fullUrl": get_uuid(), "resource": organization, "request": BundleEntryRequest(method="POST", url="Organization")}]
 
-    patient = build_Patient(raw)
+    patient = build_Patient(file_id,raw)
     entries.append({"fullUrl": patient_ref, "resource": patient, "request": BundleEntryRequest(method="POST", url="Patient")})
 
     encounter = build_stroke_encounter_profile(raw, patient_ref)

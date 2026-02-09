@@ -156,10 +156,12 @@ def main():
     count = 0
 
     # Streaming iteration to avoid driver memory overflow
+
     for row in df.toLocalIterator():
+        file_id = f"{csv_path.stem}_{row}"
         row_dict = row.asDict(recursive=True)
 
-        bundle_obj = transform_to_fhir(row_dict)
+        bundle_obj = transform_to_fhir(file_id, row_dict)
         
         if bundle_obj.get_resource_type() != "Bundle":
             raise ValueError("transform_to_fhir did not return a Bundle (resourceType != 'Bundle')")
