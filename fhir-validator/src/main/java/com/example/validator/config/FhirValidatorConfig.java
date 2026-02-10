@@ -111,8 +111,8 @@ public class FhirValidatorConfig {
 
     // 1) Base chain: core support + IG + terminology helpers
     ValidationSupportChain chain = new ValidationSupportChain();
-    chain.addValidationSupport(new DefaultProfileValidationSupport(ctxR5));        // Core R5 structures/profiles
-    chain.addValidationSupport(npm);                                              // Your IG packages
+    chain.addValidationSupport(npm);    // Your IG packages
+    chain.addValidationSupport(new DefaultProfileValidationSupport(ctxR5));        // Core R5 structures/profiles                                      
     chain.addValidationSupport(new InMemoryTerminologyServerValidationSupport(ctxR5));
     chain.addValidationSupport(new CommonCodeSystemsTerminologyService(ctxR5));   // UCUM, etc.
     chain.addValidationSupport(new SnapshotGeneratingValidationSupport(ctxR5));
@@ -150,7 +150,9 @@ public class FhirValidatorConfig {
     // Standard module using the chain
     FhirInstanceValidator module = new FhirInstanceValidator(chain);
     module.setAnyExtensionsAllowed(true);
+    module.setErrorForUnknownProfiles(true);
     module.setBestPracticeWarningLevel(BestPracticeWarningLevel.Ignore);
+
     // Build the validator from the R5 context and register both modules
     FhirValidator validator = ctxR5.newValidator().registerValidatorModule(module);
 

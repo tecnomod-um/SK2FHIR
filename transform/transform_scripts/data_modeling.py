@@ -261,11 +261,12 @@ def build_stroke_diagnosis_condition_profile(raw: dict, patient_ref: str, encoun
             url="http://tecnomod-um.org/StructureDefinition/ischemic-stroke-etiology-ext",
             valueCodeableConcept=CodeableConcept(coding=[Coding(system=etiology.system, code=etiology.code, display=etiology.display)])
         ))
-    elif bleeding_reason is not None:
+    if bleeding_reason is not None:
         extension_list.append(Extension(
             url="http://tecnomod-um.org/StructureDefinition/hemorrhagic-stroke-bleeding-reason-ext",
             valueCodeableConcept=CodeableConcept(coding=[Coding(system=bleeding_reason.system, code=bleeding_reason.code, display=bleeding_reason.display)])
         ))
+        
 
     
     # onset date/time (optional, but defensive)
@@ -623,6 +624,7 @@ def build_observation_mtici_score(raw: dict, patient_ref : str, encounter_ref : 
 
 
 def build_observation_smoking(raw: dict, patient_ref: str, encounter_ref: str) -> Observation:
+
     smoker_coding = Coding(
         code = RiskFactor.Smoker.code,
         system = RiskFactor.Smoker.system,
@@ -1154,7 +1156,7 @@ def build_organization(raw : dict) -> Organization:
     )
 
     org.identifier = [valueConceptOrg]
-    org.name = str(raw['hospital_name'])
+    #org.name = str(raw['hospital_name'])
     return org
 
 
@@ -1225,7 +1227,7 @@ def transform_to_fhir(file_id:str, raw: dict) -> Bundle:
         procedure_carotid = build_carotid_imaging_procedure(raw, patient_ref, encounter_ref, raw.get("carotid_arteries_imaging"))
         entries.append({"fullUrl": get_uuid(), "resource": procedure_carotid, "request": BundleEntryRequest(method="POST", url="Procedure")})
 
-    if not safe_isna(raw.get("risk_smoker_last_10_years")):
+    if not safe_isna(raw.get("risk_smoker_last_10_years")) and raw.get("risk_smoker_last_10_years"):
         obs = build_observation_smoking(raw, patient_ref, encounter_ref)
         entries.append({"fullUrl": get_uuid(), "resource": obs, "request": BundleEntryRequest(method="POST", url="Observation")})
 

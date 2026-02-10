@@ -158,7 +158,8 @@ def main():
     # Streaming iteration to avoid driver memory overflow
 
     for row in df.toLocalIterator():
-        file_id = f"{csv_path.stem}_{row}"
+        file_id = f"{csv_path.stem}_{count:05d}"
+        file_id = file_id.replace(" ", "-").replace("_", "-")  # sanitize for filenames and IDs
         row_dict = row.asDict(recursive=True)
 
         bundle_obj = transform_to_fhir(file_id, row_dict)
