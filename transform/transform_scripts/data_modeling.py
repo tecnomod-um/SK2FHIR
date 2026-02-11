@@ -1144,11 +1144,13 @@ def get_org_id(hospital_name: str):
         raise ValueError(f"Hospital name '{hospital_name}' not found in provider mapping")
     return provider_mapping.get(hospital_name)
 
+
+
 def build_organization(raw : dict) -> Organization:
     org = Organization()
     org.active = True
 
-    mapped_org_id = get_org_id(str(raw['hospital_name']))
+    mapped_org_id = get_org_id(str(raw['hospital_name']).strip())
 
     valueConceptOrg = Identifier(
         system="https://stroke.qualityregistry.org",
@@ -1156,7 +1158,7 @@ def build_organization(raw : dict) -> Organization:
     )
 
     org.identifier = [valueConceptOrg]
-    #org.name = str(raw['hospital_name'])
+    org.name = str(raw['hospital_name'])
     return org
 
 

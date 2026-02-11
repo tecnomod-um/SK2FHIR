@@ -99,7 +99,7 @@ class StrokeType(ConceptEnum):
     TRANSIENT_ISCHEMIC      = ("Transient Ischemic", {"code": "266257000", "display": "Transient ischemic attack (disorder)", "system": "http://snomed.info/sct"})
     CEREBRAL_VENOUS_THROMBOSIS = ("Cerebral Venous Thrombosis", {"code": "95455008", "display": "Thrombosis of cerebral veins (disorder)", "system": "http://snomed.info/sct"})
     STROKE_MIMICS = ("Stroke Mimics", {"code": "230690007", "display": "Cerebrovascular accident (disorder)", "system": "http://snomed.info/sct"})
-    UNDETERMINED            = ("Undetermined", {"code": "230690007", "display": "Cerebrovascular accident (disorder)", "system": "http://snomed.info/sct"})
+    UNDETERMINED            = ("Undetermined", {"code": "373068000", "display": "Undetermined (qualifier value)", "system": "http://snomed.info/sct"})
 
 class StrokeEtiology(ConceptEnum):
         CARDIOEMBOLYSM = ("Cardioembolism", {"code": "413758000", "display": "Cardioembolic stroke (disorder)", "system": "http://snomed.info/sct"})

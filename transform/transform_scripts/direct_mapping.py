@@ -66,7 +66,7 @@ imaging_done_map = {
 before_onset_anticoagulant_map = {
     '1': Medications.WARFARIN.id,
     '6': Medications.ANTICOAGULANT.id,
-    '98': Medications.ANTICOAGULANT.id,
+    '98': Medications.OTHER_ANTICOAGULANT.id,
 }
 
 
