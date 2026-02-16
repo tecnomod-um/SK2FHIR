@@ -27,7 +27,7 @@ sex_map = {
 arrival_mode_map = {
     '1': ArrivalMode.EMS_HOME.id,
     '2': ArrivalMode.PRIVATE_TRANSPORTATION_HOME.id,
-    '3': ArrivalMode.STROKE_CENTER.id,
+    '3': None,
     '4': ArrivalMode.ANOTHER_HOSPITAL.id,
     '5': ArrivalMode.EMS_GP.id,
     '6': ArrivalMode.PRIVATE_TRANSPORTATION_GP.id
@@ -105,7 +105,7 @@ atrial_fibrillation_or_flutter_map = {
 
 no_thrombolysis_reason_map = {
     '2': ProcedureNotDoneReason.DONE_ELSEWHERE.id,
-    '3': ProcedureNotDoneReason.TRANSFERRED_ELSEWHERE.id,
+    '3': None,
 }
 
 no_thrombectomy_reason_map = {
@@ -116,7 +116,7 @@ no_thrombectomy_reason_map = {
 
 swallowing_screening_done_map = {
     '1': SwallowingScreeningDone.YES.id,
-    '2': SwallowingScreeningDone.YES.id,
+    '2': SwallowingScreeningDone.YES_METHOD.id,
     '3': SwallowingScreeningDone.NO.id,
 }
 

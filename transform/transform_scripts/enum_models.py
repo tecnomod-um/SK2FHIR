@@ -172,6 +172,7 @@ class SwallowingScreeningType(ConceptEnum):
     OTHER = ("Other", {"code": "other", "display": "Other Swallow Procedure", "system": "http://tecnomod-um.org/CodeSystem/swallow-procedures-cs"})
     ASSIST = ("Assist", {"code": "assist", "display": "ASSIST", "system": "http://tecnomod-um.org/CodeSystem/swallow-procedures-cs"})
     VST = ("VST", {"code": "v-vst", "display": "V-VST", "system": "http://tecnomod-um.org/CodeSystem/swallow-procedures-cs"})
+    UNKNOWN = ("UNKNOWN", {"code": "261665006", "display": "Unknown (qualifier value)", "system": "http://snomed.info/sct"})
 
 class DischargeDestination(ConceptEnum):
     HOME = ("Home", {"code": "306689006", "display": "Discharge to home (procedure)", "system": "http://snomed.info/sct"})

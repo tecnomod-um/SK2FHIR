@@ -74,7 +74,8 @@ def parse_datetime(raw: str, *, tz: str = "Europe/Bratislava") -> datetime:
             # If only date, assume midnight
             if fmt == "%Y-%m-%d":
                 dt = datetime.combine(dt.date(), datetime.min.time())
-            return dt.replace(tzinfo=ZoneInfo(tz))
+                dt = dt.replace(tzinfo=ZoneInfo(tz))
+            return dt.astimezone(ZoneInfo("UTC"))
         except Exception as e:
             last_err = e
     raise TransformError(
@@ -323,25 +324,15 @@ def build_imaging_procedure(raw: dict, patient_ref : str, encounter_ref : str) -
     #     # —————————————
     procedure_final = Procedure(subject=Reference(reference=patient_ref), encounter=Reference(reference=encounter_ref), status="completed")
     imaging_done = ImagingDone.by_id(str(raw["imaging_done_id"]))
-    if imaging_done == ImagingDone.YES:
-        status_coding = Coding(
-            system = "http://hl7.org/fhir/event-status",
-            code = "completed",
-            display = "Completed"
-        )
+    if imaging_done.id == ImagingDone.YES.id:
         status_reason = None
         procedure_final.status = "completed"
     else:
-        if imaging_done == ImagingDone.NO:
+        if imaging_done.id == ImagingDone.NO.id:
             status_reason = ProcedureNotDoneReason.UNKNOWN
-        elif imaging_done == ImagingDone.ELSEWHERE:
+            procedure_final.status = "not-done"
+        elif imaging_done.id == ImagingDone.ELSEWHERE.id:
             status_reason = ProcedureNotDoneReason.DONE_ELSEWHERE
-        status_coding = Coding(
-            system = "http://hl7.org/fhir/event-status",
-            code = "not-done",
-            display = "Not Done"
-        )
-        procedure_final.status = "not-done"
         if status_reason is not None:
             status_reason_coding = Coding(
                 system = status_reason.system,
@@ -380,6 +371,8 @@ def build_imaging_procedure(raw: dict, patient_ref : str, encounter_ref : str) -
     category_code = CodeableConcept(coding=[category_coding])
     procedure_final.extension = extension_list
     imaging_timestamp = raw.get("imaging_timestamp")
+    print(f"Imaging type : {imaging_code}")
+    print(f"Imaging timestamp raw value: {imaging_timestamp}")
     if imaging_timestamp is not None:
         imaging_timestamp = parse_datetime(str(imaging_timestamp))
         procedure_final.occurrenceDateTime = imaging_timestamp        
@@ -735,28 +728,37 @@ def build_swallowing_screening_procedure(raw: dict, patient_ref : str, encounter
         code_type = CodeableConcept(coding=[coding_type])
         
         procedure.code = code_type
-
-        extension_list = []
-        swallowing_timing = SwallowingScreeningTiming.by_id(str(raw.get("swallowing_screening_timing_id")))
-        coding_result = Coding(
-            code = swallowing_timing.code,
-            system = swallowing_timing.system,
-            display = swallowing_timing.display
-        )
-        code_result = CodeableConcept(coding=[coding_result])
-        extension_list.append(Extension(url="http://tecnomod-um.org/StructureDefinition/swallowing-screening-timing-category-ext", valueCodeableConcept=code_result))
+    if swallowing_screening.id == SwallowingScreeningDone.YES.id: 
+        swallowing_type = SwallowingScreeningType.UNKNOWN
+        coding_type = Coding(
+                code = swallowing_type.code,
+                system = swallowing_type.system,
+                display = swallowing_type.display
+            )
+        code_type = CodeableConcept(coding=[coding_type])
+        procedure.code = code_type
         
-        post_acute_care = PostAcuteCare.by_id(str(raw.get("post_acute_care"))) 
-        coding_post_acute = Coding(
-            code = post_acute_care.code,
-            system = post_acute_care.system,
-            display = post_acute_care.display
-        )
-        code_post_acute = CodeableConcept(coding=[coding_post_acute])
-        extension_list.append(Extension(url="http://tecnomod-um.org/StructureDefinition/procedure-timing-context-ext",valueCodeableConcept=code_post_acute))
-        
-        if len(extension_list) > 0:
-            procedure.extension = extension_list
+    extension_list = []
+    swallowing_timing = SwallowingScreeningTiming.by_id(str(raw.get("swallowing_screening_timing_id")))
+    coding_result = Coding(
+        code = swallowing_timing.code,
+        system = swallowing_timing.system,
+        display = swallowing_timing.display
+    )
+    code_result = CodeableConcept(coding=[coding_result])
+    extension_list.append(Extension(url="http://tecnomod-um.org/StructureDefinition/swallowing-screening-timing-category-ext", valueCodeableConcept=code_result))
+    
+    post_acute_care = PostAcuteCare.by_id(str(raw.get("post_acute_care"))) 
+    coding_post_acute = Coding(
+        code = post_acute_care.code,
+        system = post_acute_care.system,
+        display = post_acute_care.display
+    )
+    code_post_acute = CodeableConcept(coding=[coding_post_acute])
+    extension_list.append(Extension(url="http://tecnomod-um.org/StructureDefinition/procedure-timing-context-ext",valueCodeableConcept=code_post_acute))
+    
+    if len(extension_list) > 0:
+        procedure.extension = extension_list
     
     procedure.subject = Reference(reference=patient_ref)
     procedure.encounter = Reference(reference=encounter_ref)
@@ -801,6 +803,12 @@ def build_thrombolysis_procedure(raw: dict, patient_ref : str, encounter_ref : s
             system = no_thrombolysis_reason.system,
             display = no_thrombolysis_reason.display
         )
+        if ProcedureNotDoneReason.DONE_ELSEWHERE == no_thrombolysis_reason:
+            bolus_timestamp = raw.get("bolus_timestamp")
+            if bolus_timestamp is not None:
+                bolus_timestamp = parse_datetime(str(bolus_timestamp))
+                procedure.occurrencePeriod=Period(start=bolus_timestamp)
+
         code_reason = CodeableConcept(coding=[coding_reason])
         procedure.status = "not-done"
         procedure.statusReason = code_reason
@@ -864,6 +872,14 @@ def build_thrombectomy_procedure(raw: dict, patient_ref : str, encounter_ref : s
             system = no_thrombectomy_reason.system,
             display = no_thrombectomy_reason.display
         )
+        if ProcedureNotDoneReason.DONE_ELSEWHERE == no_thrombectomy_reason:
+            puncture_timestamp = raw.get("puncture_timestamp")
+            reperfusion_timestamp = raw.get("reperfusion_timestamp")
+            if puncture_timestamp is not None and reperfusion_timestamp is not None:
+                puncture_timestamp = parse_datetime(str(puncture_timestamp))
+                reperfusion_timestamp = parse_datetime(str(reperfusion_timestamp))
+                procedure.occurrencePeriod = Period(start=puncture_timestamp, end=reperfusion_timestamp)
+
         code_reason = CodeableConcept(coding=[coding_reason])
         procedure.status = "not-done"
         procedure.statusReason = code_reason
@@ -888,7 +904,7 @@ def build_thrombectomy_procedure(raw: dict, patient_ref : str, encounter_ref : s
             reperfusion_timestamp = parse_datetime(str(reperfusion_timestamp))
             procedure.occurrencePeriod = Period(start=puncture_timestamp, end=reperfusion_timestamp)
 
-    if not safe_isna(raw.get("mt_complications_perforation")):
+    if not safe_isna(raw.get("mt_complications_perforation")) and raw.get("mt_complications_perforation") == True:
         perforation = ThrombectomyComplications.PERFORATION
         coding_perforation = Coding(
             code = perforation.code,
@@ -1150,7 +1166,7 @@ def build_organization(raw : dict) -> Organization:
     org = Organization()
     org.active = True
 
-    mapped_org_id = get_org_id(str(raw['hospital_name']).strip())
+    mapped_org_id = get_org_id(str(raw['hospital_name']))
 
     valueConceptOrg = Identifier(
         system="https://stroke.qualityregistry.org",
@@ -1158,7 +1174,7 @@ def build_organization(raw : dict) -> Organization:
     )
 
     org.identifier = [valueConceptOrg]
-    org.name = str(raw['hospital_name'])
+    org.name = str(raw['hospital_name']).strip().replace(" ","-")
     return org
 
 
@@ -1195,9 +1211,9 @@ def transform_to_fhir(file_id:str, raw: dict) -> Bundle:
                         "request": BundleEntryRequest(method="POST", url="Observation")})
 
     # 6. Observation: mRS (if exists)
-    if not safe_isna(raw.get("prestroke_mrs")):
-        observation_mrs = build_observation_mrs(raw, patient_ref, encounter_ref, prestroke=True)
-        entries.append({"fullUrl": get_uuid(), "resource": observation_mrs, "request": BundleEntryRequest(method="POST", url="Observation")})
+    # if not safe_isna(raw.get("prestroke_mrs")):
+    #     observation_mrs = build_observation_mrs(raw, patient_ref, encounter_ref, prestroke=True)
+    #     entries.append({"fullUrl": get_uuid(), "resource": observation_mrs, "request": BundleEntryRequest(method="POST", url="Observation")})
 
     if not safe_isna(raw.get("discharge_mrs")):
         observation_mrs = build_observation_mrs(raw, patient_ref, encounter_ref, discharge=True)
@@ -1249,7 +1265,7 @@ def transform_to_fhir(file_id:str, raw: dict) -> Bundle:
         entries.append({"fullUrl": get_uuid(), "resource": obs, "request": BundleEntryRequest(method="POST", url="Observation")})
 
     # Imaging procedure requires identifiers when you call it (función ya valida internamente)
-    if not safe_isna(raw.get("imaging_type_id")) and not safe_isna(raw.get("imaging_done_id")):
+    if not safe_isna(raw.get("imaging_done_id")) and not safe_isna(raw.get("imaging_type_id")):
         proc_img = build_imaging_procedure(raw, patient_ref, encounter_ref)
         entries.append({"fullUrl": get_uuid(), "resource": proc_img, "request": BundleEntryRequest(method="POST", url="Procedure")})
 
