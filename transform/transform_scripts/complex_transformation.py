@@ -92,7 +92,9 @@ def imaging_types(dataframe):
             (col("ct_angio") == '1') & (col(shm.imaging_type) == '3'),
             (ImagingType.MR_MRA.id))
         .when(col(shm.imaging_type) == '1', ((ImagingType.CT.id)))
+        .when(col(shm.imaging_type) == '2', ((ImagingType.CT.id)))
         .when(col(shm.imaging_type) == '3', ((ImagingType.MR.id)))
+        .when(col(shm.imaging_type) == '4', ((ImagingType.MR.id)))
         .otherwise(None))
 
 
