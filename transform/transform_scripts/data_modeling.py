@@ -701,7 +701,8 @@ def build_swallowing_screening_procedure(raw: dict, patient_ref : str, encounter
 
     procedure = Procedure(status="completed", subject=Reference(reference=patient_ref), encounter=Reference(reference=encounter_ref))
     procedure.meta = {"profile": ["http://tecnomod-um.org/StructureDefinition/stroke-swallow-procedure-profile"]}
-    
+    procedure.subject = Reference(reference=patient_ref)
+    procedure.encounter = Reference(reference=encounter_ref)
     swallowing_screening = SwallowingScreeningDone.by_id(str(raw.get("swallowing_screening_done_id")))
     print(f"Swallowing screening done raw value: {raw.get('swallowing_screening_done_id')}")
     print(swallowing_screening)
@@ -730,9 +731,10 @@ def build_swallowing_screening_procedure(raw: dict, patient_ref : str, encounter
             )
         status_reason_code = CodeableConcept(coding=[status_reason_coding])
         procedure.statusReason = status_reason_code
+        return procedure
     else:
         procedure.status = "unknown"
-        
+        return procedure
     extension_list = []
     swallowing_timing = SwallowingScreeningTiming.by_id(str(raw.get("swallowing_screening_timing_id")))
     coding_result = Coding(
@@ -755,8 +757,7 @@ def build_swallowing_screening_procedure(raw: dict, patient_ref : str, encounter
     if len(extension_list) > 0:
         procedure.extension = extension_list
     
-    procedure.subject = Reference(reference=patient_ref)
-    procedure.encounter = Reference(reference=encounter_ref)
+
     return procedure
 
 
