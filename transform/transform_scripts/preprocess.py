@@ -53,7 +53,7 @@ def transformation(input_dataframe):
     df = mapping(df, shm.stroke_type, maps.stroke_type_map)
     #df = mapping(df, shm.no_thrombolysis_reason, maps.no_thrombolysis_reason_map)
     #df = mapping(df, shm.no_thrombectomy_reason, maps.no_thrombectomy_reason_map)
-    df = mapping(df, shm.swallowing_screening_done, maps.swallowing_screening_done_map)
+    df = mapping(df, shm.swallowing_screening_done, lookup=maps.swallowing_screening_done_map)
     df = mapping(df, shm.swallowing_screening_type, maps.swallowing_screening_type_map)
     df = mapping(df, shm.swallowing_screening_timing, maps.swallowing_screening_timing_map)
     df = mapping(df, shm.discharge_destination, maps.discharge_destination_map)

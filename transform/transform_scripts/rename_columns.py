@@ -70,5 +70,7 @@ column_mapping = {
     "UKON_WARFARIN": shm.discharge_warfarin,
     "UKON_HEPARIN": shm.discharge_heparin,
     "UKON_STATIN": shm.discharge_statin,
+    "UKON_DOAK": shm.discharge_antidiabetics,
+    "UKON_ANTIDEPRESIVA": "discharge_other2",
     "UKON_NOOTROPIKA": shm.discharge_other,
 }

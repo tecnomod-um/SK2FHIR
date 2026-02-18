@@ -116,7 +116,7 @@ no_thrombectomy_reason_map = {
 
 swallowing_screening_done_map = {
     '1': SwallowingScreeningDone.YES.id,
-    '2': SwallowingScreeningDone.YES_METHOD.id,
+    '2': SwallowingScreeningDone.YES.id,
     '3': SwallowingScreeningDone.NO.id,
 }
 

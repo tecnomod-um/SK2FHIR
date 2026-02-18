@@ -157,7 +157,6 @@ class ProcedureNotDoneReason(ConceptEnum):
 
 class SwallowingScreeningDone(ConceptEnum):
     YES = ("Yes", {"code": "385658003", "display": "Done (qualifier value)", "system": "http://snomed.info/sct"})
-    YES_METHOD = ("Yes with Method", {"code": "385658003", "display": "Done (qualifier value)", "system": "http://snomed.info/sct"})
     NO = ("No", {"code": "385660001", "display": "Not done (qualifier value)", "system": "http://snomed.info/sct"})
     NOT_APPLICABLE = ("Not Applicable", {"code": "385432009", "display": "Not applicable (qualifier value)", "system": "http://snomed.info/sct"})
 

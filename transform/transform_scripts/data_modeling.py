@@ -703,9 +703,24 @@ def build_swallowing_screening_procedure(raw: dict, patient_ref : str, encounter
     procedure.meta = {"profile": ["http://tecnomod-um.org/StructureDefinition/stroke-swallow-procedure-profile"]}
     
     swallowing_screening = SwallowingScreeningDone.by_id(str(raw.get("swallowing_screening_done_id")))
-    if swallowing_screening.id is "Yes":
+    print(f"Swallowing screening done raw value: {raw.get('swallowing_screening_done_id')}")
+    print(swallowing_screening)
+    if swallowing_screening.id == SwallowingScreeningDone.YES.id:
+        if safe_isna(raw.get("swallowing_screening_type_id")) or raw.get("swallowing_screening_type_id") is None:
+            swallowing_type = SwallowingScreeningType.UNKNOWN
+        else:
+            swallowing_type = SwallowingScreeningType.by_id(str(raw.get("swallowing_screening_type_id")))
+        coding_type = Coding(
+                code = swallowing_type.code,
+                system = swallowing_type.system,
+                display = swallowing_type.display
+            )
+        code_type = CodeableConcept(coding=[coding_type])
+        
+        procedure.code = code_type
+
         procedure.status = "completed"
-    elif swallowing_screening.id is "No":
+    elif swallowing_screening.id == SwallowingScreeningDone.NO.id:
         procedure.status = "not-done"
         status_reason = ProcedureNotDoneReason.UNKNOWN
         status_reason_coding = Coding(
@@ -717,26 +732,6 @@ def build_swallowing_screening_procedure(raw: dict, patient_ref : str, encounter
         procedure.statusReason = status_reason_code
     else:
         procedure.status = "unknown"
-
-    if swallowing_screening.id == SwallowingScreeningDone.YES_METHOD.id:
-        swallowing_type = SwallowingScreeningType.by_id(str(raw.get("swallowing_screening_type_id")))
-        coding_type = Coding(
-                code = swallowing_type.code,
-                system = swallowing_type.system,
-                display = swallowing_type.display
-            )
-        code_type = CodeableConcept(coding=[coding_type])
-        
-        procedure.code = code_type
-    if swallowing_screening.id == SwallowingScreeningDone.YES.id: 
-        swallowing_type = SwallowingScreeningType.UNKNOWN
-        coding_type = Coding(
-                code = swallowing_type.code,
-                system = swallowing_type.system,
-                display = swallowing_type.display
-            )
-        code_type = CodeableConcept(coding=[coding_type])
-        procedure.code = code_type
         
     extension_list = []
     swallowing_timing = SwallowingScreeningTiming.by_id(str(raw.get("swallowing_screening_timing_id")))
@@ -844,7 +839,7 @@ def build_thrombectomy_procedure(raw: dict, patient_ref : str, encounter_ref : s
     procedure.code = code_thrombectomy
 
     extension_list = []
-        
+    
     if not pd.isna(raw.get("post_acute_care")):
         post_acute_care = PostAcuteCare.by_id(str(raw.get("post_acute_care")))
         coding_post_acute = Coding(
@@ -858,14 +853,29 @@ def build_thrombectomy_procedure(raw: dict, patient_ref : str, encounter_ref : s
     if len(extension_list) > 0:
         procedure.extension = extension_list
 
-    if safe_isna(raw.get("thrombectomy")) and safe_isna(raw.get("no_thrombectomy_reason_id")):
-        procedure.status = "unknown"
+    print(f"Thrombectomy raw value: {raw.get('thrombectomy')}")
+    print(f"No thrombectomy reason raw value: {raw.get('no_thrombectomy_reason_id')}")
+
+    print(f"Is thrombectomy NA? {safe_isna(raw.get('thrombectomy'))}")
+    print(f"Is no thrombectomy reason NA? {safe_isna(raw.get('no_thrombectomy_reason_id'))}")
+    print(f"Is thrombectomy False? {raw.get('thrombectomy') is False}")
+    print(f"Is thrombectomy None? {raw.get('thrombectomy') is None}")
+    print(f"Is thrombectomy True? {raw.get('thrombectomy') is True}")
+    if safe_isna(raw.get("thrombectomy")) or raw.get("thrombectomy") is None:
+        if safe_isna(raw.get("no_thrombectomy_reason_id")) or raw.get("no_thrombectomy_reason_id") is None:
+            procedure.status = "unknown"
         return procedure
-    elif (safe_isna(raw.get("thrombectomy")) or not(raw.get("thrombectomy"))) and not safe_isna(raw.get("no_thrombectomy_reason_id")):
+     
+    if raw.get('thrombectomy') is False or raw.get("thrombectomy") is None:
         print(safe_isna(raw.get("thrombectomy")))
-        print("Building thrombectomy procedure - not done with reason")
+        print("Building thrombectomy procedure - not done")
         print(f"no_thrombectomy_reason_id: {raw.get('no_thrombectomy_reason_id')}")
-        no_thrombectomy_reason = ProcedureNotDoneReason.by_id(str(raw.get("no_thrombectomy_reason_id")))
+
+        if safe_isna(raw.get("no_thrombectomy_reason_id")) or raw.get("no_thrombectomy_reason_id") is None:
+            no_thrombectomy_reason = ProcedureNotDoneReason.UNKNOWN
+        else:
+            no_thrombectomy_reason = ProcedureNotDoneReason.by_id(str(raw.get("no_thrombectomy_reason_id")))
+
         print(f"no_thrombectomy_reason: {no_thrombectomy_reason}")
         coding_reason = Coding(
             code = no_thrombectomy_reason.code,
@@ -884,18 +894,8 @@ def build_thrombectomy_procedure(raw: dict, patient_ref : str, encounter_ref : s
         procedure.status = "not-done"
         procedure.statusReason = code_reason
         return procedure
-    elif (safe_isna(raw.get("thrombectomy")) or not(raw.get("thrombectomy"))) and safe_isna(raw.get("no_thrombectomy_reason_id")):
-        no_thrombectomy_reason = ProcedureNotDoneReason.UNKNOWN
-        coding_reason = Coding(
-            code = no_thrombectomy_reason.code,
-            system = no_thrombectomy_reason.system,
-            display = no_thrombectomy_reason.display
-        )
-        code_reason = CodeableConcept(coding=[coding_reason])
-        procedure.status = "not-done"
-        procedure.statusReason = code_reason
-        return procedure
-    else:
+    if raw.get('thrombectomy') is True:
+
         procedure.status = "completed"  
         puncture_timestamp = raw.get("puncture_timestamp")
         reperfusion_timestamp = raw.get("reperfusion_timestamp")
@@ -903,6 +903,7 @@ def build_thrombectomy_procedure(raw: dict, patient_ref : str, encounter_ref : s
             puncture_timestamp = parse_datetime(str(puncture_timestamp))
             reperfusion_timestamp = parse_datetime(str(reperfusion_timestamp))
             procedure.occurrencePeriod = Period(start=puncture_timestamp, end=reperfusion_timestamp)
+        return procedure
 
     if not safe_isna(raw.get("mt_complications_perforation")) and raw.get("mt_complications_perforation") == True:
         perforation = ThrombectomyComplications.PERFORATION
@@ -1083,7 +1084,7 @@ def build_before_onset_medicationStatement_profile(raw: dict, patient_ref : str,
     med_taken, med_not_taken, med_unknown = get_before_onset_medications(raw)
     final_medication_lists = []
     grouped = [("Taking", med_taken), ("Not Taking", med_not_taken), ("Unknown",med_unknown)]
-
+    print(grouped)
     for status_key, meds in grouped:
         adherence_code = AdherenceCodes.by_id(status_key)
 
@@ -1156,17 +1157,19 @@ def build_before_onset_medicationRequest_profile(raw: dict, patient_ref : str, e
 def get_org_id(hospital_name: str):
     if hospital_name is None or hospital_name.strip() == "":
         raise ValueError("Hospital name is required to map to organization ID")
-    if hospital_name not in provider_mapping:
+    normalized_name = hospital_name.strip().replace(" ", "-")
+    if normalized_name not in [key.strip().replace(" ", "-") for key in provider_mapping.keys()]:
         raise ValueError(f"Hospital name '{hospital_name}' not found in provider mapping")
-    return provider_mapping.get(hospital_name)
-
+    for key in provider_mapping.keys():
+        if normalized_name == key.strip().replace(" ", "-"):
+            return provider_mapping[key]
 
 
 def build_organization(raw : dict) -> Organization:
     org = Organization()
     org.active = True
 
-    mapped_org_id = get_org_id(str(raw['hospital_name']))
+    mapped_org_id = get_org_id(str(raw['hospital_name']).strip().replace(" ","-"))
 
     valueConceptOrg = Identifier(
         system="https://stroke.qualityregistry.org",
@@ -1289,7 +1292,7 @@ def transform_to_fhir(file_id:str, raw: dict) -> Bundle:
         obs = build_timing_specific_observation(raw, patient_ref, encounter_ref, proc_thrombectomy_ref, thrombectomy=True)
         entries.append({"fullUrl": get_uuid(), "resource": obs, "request": BundleEntryRequest(method="POST", url="Observation")})
 
-    if not safe_isna(raw.get("swallowing_screening_type_id")):
+    if not safe_isna(raw.get("swallowing_screening_done_id")):
         proc_swallowing = build_swallowing_screening_procedure(raw, patient_ref, encounter_ref)
         entries.append({"fullUrl": get_uuid(), "resource": proc_swallowing, "request": BundleEntryRequest(method="POST", url="Procedure")})
 
