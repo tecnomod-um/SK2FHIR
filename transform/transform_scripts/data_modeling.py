@@ -150,8 +150,7 @@ def get_on_discharge_medications(raw: dict):
         "discharge_contraception": Medications.CONTRACEPTION,
         "discharge_other": Medications.OTHER,
         "discharge_statin": Medications.STATIN,
-        "discharge_warfarin": Medications.WARFARIN
-
+        "discharge_warfarin": Medications.WARFARIN,
     }
 
     for key, med in mapping.items():
@@ -881,13 +880,13 @@ def build_thrombectomy_procedure(raw: dict, patient_ref : str, encounter_ref : s
             system = no_thrombectomy_reason.system,
             display = no_thrombectomy_reason.display
         )
-        if ProcedureNotDoneReason.DONE_ELSEWHERE == no_thrombectomy_reason:
-            # puncture_timestamp = raw.get("puncture_timestamp")
-            # reperfusion_timestamp = raw.get("reperfusion_timestamp")
-            # if puncture_timestamp is not None and reperfusion_timestamp is not None:
-            #     puncture_timestamp = parse_datetime(str(puncture_timestamp))
-            #     reperfusion_timestamp = parse_datetime(str(reperfusion_timestamp))
-            #     procedure.occurrencePeriod = Period(start=puncture_timestamp, end=reperfusion_timestamp)
+        # if ProcedureNotDoneReason.DONE_ELSEWHERE == no_thrombectomy_reason:
+        #     puncture_timestamp = raw.get("puncture_timestamp")
+        #     reperfusion_timestamp = raw.get("reperfusion_timestamp")
+        #     if puncture_timestamp is not None and reperfusion_timestamp is not None:
+        #         puncture_timestamp = parse_datetime(str(puncture_timestamp))
+        #         reperfusion_timestamp = parse_datetime(str(reperfusion_timestamp))
+        #         procedure.occurrencePeriod = Period(start=puncture_timestamp, end=reperfusion_timestamp)
 
         code_reason = CodeableConcept(coding=[coding_reason])
         procedure.status = "not-done"

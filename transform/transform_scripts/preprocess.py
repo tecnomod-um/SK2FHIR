@@ -76,7 +76,7 @@ def transformation(input_dataframe):
     df = cetl.transform_bleeding_reason(df)
     df = cetl.transform_etiology(df)
 
-    df = cetl.imaging_types(df)
+    df = cetl.transform_imaging_types(df)
     df = cetl.reperfusion_timestamp(df)
     df = cetl.transformation_post_acute_care(df)
     df = cetl.process_mrs(df, shm.discharge_mrs)
@@ -129,7 +129,7 @@ str_to_bool_columns = [
     shm.discharge_asa,
     shm.discharge_clopidogrel,
     shm.discharge_warfarin,
-    "discharge_doak",
+    shm.discharge_antidiabetics,
     shm.discharge_heparin,
     shm.discharge_statin,
     shm.discharge_other,
@@ -146,7 +146,8 @@ before_onset_anticoagulant_types = [
 discharge_anticoagulant_types = [
     shm.discharge_warfarin,
     shm.discharge_heparin,
-    "discharge_doak",
+    shm.discharge_antidiabetics
+    #"discharge_doak",
 ]
 
 discharge_antiplatelet_types = [

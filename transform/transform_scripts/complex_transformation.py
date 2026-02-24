@@ -76,26 +76,16 @@ def no_thrombectomy_reason(dataframe):
         .otherwise(col(shm.no_thrombectomy_reason)))
 
 
-def imaging_types(dataframe):
-    return dataframe.withColumn(
-        shm.imaging_type,
-        when(
-            (col("ct_perfusion") == '1') & (col(shm.imaging_type) == '1'),
-            ((ImagingType.CT_CTA_PERFUSION.id)))
-        .when(
-            (col("ct_perfusion") == '1') & (col(shm.imaging_type) == '3'),
-            ((ImagingType.MR_MRA_PERFUSION.id)))
-        .when(
-            (col("ct_angio") == '1') & (col(shm.imaging_type) == '1'),
-            (ImagingType.CT_CTA.id))
-        .when(
-            (col("ct_angio") == '1') & (col(shm.imaging_type) == '3'),
-            (ImagingType.MR_MRA.id))
-        .when(col(shm.imaging_type) == '1', ((ImagingType.CT.id)))
-        .when(col(shm.imaging_type) == '2', ((ImagingType.CT.id)))
-        .when(col(shm.imaging_type) == '3', ((ImagingType.MR.id)))
-        .when(col(shm.imaging_type) == '4', ((ImagingType.MR.id)))
-        .otherwise(None))
+def transform_imaging_types(df):
+    df = df.withColumn(shm.imaging_type, 
+            when((col("ct_perfusion") == '1') & (col(shm.imaging_type).isin('1', '2')), ImagingType.CT_CTA_PERFUSION.id)
+            .when((col("ct_perfusion") == '1') & (col(shm.imaging_type).isin('3', '4')), ImagingType.MR_MRA_PERFUSION.id)
+            .when((col("ct_angio") == '1') & (col(shm.imaging_type).isin('1', '2')), ImagingType.CT_CTA.id)
+            .when((col("ct_angio") == '1') & (col(shm.imaging_type).isin('3', '4')), ImagingType.MR_MRA.id)
+            .when(col(shm.imaging_type).isin('1', '2'), ImagingType.CT.id)
+            .when(col(shm.imaging_type).isin('3', '4'), ImagingType.MR.id)
+            .otherwise(None)) 
+    return df 
 
 
 def reperfusion_timestamp(dataframe):
