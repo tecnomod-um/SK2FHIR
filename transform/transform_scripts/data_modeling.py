@@ -188,6 +188,7 @@ def get_risk_factors(raw: dict):
         "risk_previous_hemorrhagic_stroke" : RiskFactor.PreviousHemorrahagicStroke,
         "risk_atrial_fibrillation": RiskFactor.AtrialFibrillation,
         "risk_coronary_artery_disease_or_myocardial_infarction": RiskFactor.CoronaryArteryDisease,
+        "risk_smoker_last_10_years": RiskFactor.Smoker,
     }
 
     for key, med in mapping.items():
@@ -799,11 +800,11 @@ def build_thrombolysis_procedure(raw: dict, patient_ref : str, encounter_ref : s
             system = no_thrombolysis_reason.system,
             display = no_thrombolysis_reason.display
         )
-        if ProcedureNotDoneReason.DONE_ELSEWHERE == no_thrombolysis_reason:
-            bolus_timestamp = raw.get("bolus_timestamp")
-            if bolus_timestamp is not None:
-                bolus_timestamp = parse_datetime(str(bolus_timestamp))
-                procedure.occurrencePeriod=Period(start=bolus_timestamp)
+        # if ProcedureNotDoneReason.DONE_ELSEWHERE == no_thrombolysis_reason:
+        #     bolus_timestamp = raw.get("bolus_timestamp")
+        #     if bolus_timestamp is not None:
+        #         bolus_timestamp = parse_datetime(str(bolus_timestamp))
+        #         procedure.occurrencePeriod=Period(start=bolus_timestamp)
 
         code_reason = CodeableConcept(coding=[coding_reason])
         procedure.status = "not-done"
@@ -862,12 +863,9 @@ def build_thrombectomy_procedure(raw: dict, patient_ref : str, encounter_ref : s
     print(f"Is thrombectomy False? {raw.get('thrombectomy') is False}")
     print(f"Is thrombectomy None? {raw.get('thrombectomy') is None}")
     print(f"Is thrombectomy True? {raw.get('thrombectomy') is True}")
-    if safe_isna(raw.get("thrombectomy")) or raw.get("thrombectomy") is None:
-        if safe_isna(raw.get("no_thrombectomy_reason_id")) or raw.get("no_thrombectomy_reason_id") is None:
-            procedure.status = "unknown"
-        return procedure
+
      
-    if raw.get('thrombectomy') is False or raw.get("thrombectomy") is None:
+    if raw.get('thrombectomy') is False or raw.get("thrombectomy") is None or safe_isna(raw.get("thrombectomy")):
         print(safe_isna(raw.get("thrombectomy")))
         print("Building thrombectomy procedure - not done")
         print(f"no_thrombectomy_reason_id: {raw.get('no_thrombectomy_reason_id')}")
@@ -884,12 +882,12 @@ def build_thrombectomy_procedure(raw: dict, patient_ref : str, encounter_ref : s
             display = no_thrombectomy_reason.display
         )
         if ProcedureNotDoneReason.DONE_ELSEWHERE == no_thrombectomy_reason:
-            puncture_timestamp = raw.get("puncture_timestamp")
-            reperfusion_timestamp = raw.get("reperfusion_timestamp")
-            if puncture_timestamp is not None and reperfusion_timestamp is not None:
-                puncture_timestamp = parse_datetime(str(puncture_timestamp))
-                reperfusion_timestamp = parse_datetime(str(reperfusion_timestamp))
-                procedure.occurrencePeriod = Period(start=puncture_timestamp, end=reperfusion_timestamp)
+            # puncture_timestamp = raw.get("puncture_timestamp")
+            # reperfusion_timestamp = raw.get("reperfusion_timestamp")
+            # if puncture_timestamp is not None and reperfusion_timestamp is not None:
+            #     puncture_timestamp = parse_datetime(str(puncture_timestamp))
+            #     reperfusion_timestamp = parse_datetime(str(reperfusion_timestamp))
+            #     procedure.occurrencePeriod = Period(start=puncture_timestamp, end=reperfusion_timestamp)
 
         code_reason = CodeableConcept(coding=[coding_reason])
         procedure.status = "not-done"
@@ -1003,6 +1001,9 @@ def build_stroke_encounter_profile(raw: dict, patient_ref : str) -> Encounter:
     if raw.get("post_acute_care"):
         
         extension_list.append(Extension(url = "http://tecnomod-um.org/StructureDefinition/required-post-acute-care-ext", valueBoolean = True))
+    elif not raw.get("post_acute_care"):
+        extension_list.append(Extension(url = "http://tecnomod-um.org/StructureDefinition/required-post-acute-care-ext", valueBoolean = False))
+
 
     encounter.extension = extension_list
 
@@ -1249,9 +1250,9 @@ def transform_to_fhir(file_id:str, raw: dict) -> Bundle:
         procedure_carotid = build_carotid_imaging_procedure(raw, patient_ref, encounter_ref, raw.get("carotid_arteries_imaging"))
         entries.append({"fullUrl": get_uuid(), "resource": procedure_carotid, "request": BundleEntryRequest(method="POST", url="Procedure")})
 
-    if not safe_isna(raw.get("risk_smoker_last_10_years")) and raw.get("risk_smoker_last_10_years"):
-        obs = build_observation_smoking(raw, patient_ref, encounter_ref)
-        entries.append({"fullUrl": get_uuid(), "resource": obs, "request": BundleEntryRequest(method="POST", url="Observation")})
+    # if not safe_isna(raw.get("risk_smoker_last_10_years")) and raw.get("risk_smoker_last_10_years"):
+    #     obs = build_observation_smoking(raw, patient_ref, encounter_ref)
+    #     entries.append({"fullUrl": get_uuid(), "resource": obs, "request": BundleEntryRequest(method="POST", url="Observation")})
 
 
     if not safe_isna(raw.get("wakeup_stroke")) and raw.get("wakeup_stroke"):
