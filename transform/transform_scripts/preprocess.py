@@ -129,7 +129,7 @@ str_to_bool_columns = [
     shm.discharge_asa,
     shm.discharge_clopidogrel,
     shm.discharge_warfarin,
-    shm.discharge_antidiabetics,
+    "discharge_doak",
     shm.discharge_heparin,
     shm.discharge_statin,
     shm.discharge_other,
@@ -146,8 +146,7 @@ before_onset_anticoagulant_types = [
 discharge_anticoagulant_types = [
     shm.discharge_warfarin,
     shm.discharge_heparin,
-    shm.discharge_antidiabetics
-    #"discharge_doak",
+    "discharge_doak",
 ]
 
 discharge_antiplatelet_types = [
